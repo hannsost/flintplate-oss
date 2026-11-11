@@ -1,0 +1,138 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: hireos_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-hireos}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hireos_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-hireos}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hireos}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: hireos_redis
+    command: redis-server --requirepass ${REDIS_PASSWORD:-redis_secret}
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${REDIS_PASSWORD:-redis_secret}", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: hireos_backend
+    env_file: .env
+    environment:
+      INVOICE_VALIDATOR_URL: http://invoice-validator:8080
+    networks:
+      - default
+      - invoice_validation
+    ports:
+      - "${HIREOS_API_PORT:-8001}:8000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+  worker:
+    image: ${PALMSCOUT_WORKER_IMAGE:-hireos-worker:latest}
+    build: ./backend
+    env_file: .env
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    command: python -m app.workqueue.worker
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os,time; assert time.time()-os.stat('/tmp/palmscout-worker-heartbeat').st_mtime < 120"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  scheduler:
+    image: ${PALMSCOUT_WORKER_IMAGE:-hireos-worker:latest}
+    env_file: .env
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      worker:
+        condition: service_started
+    command: python -m app.scheduler
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os,time; assert time.time()-os.stat('/tmp/palmscout-scheduler-heartbeat').st_mtime < 120"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  invoice-validator:
+    build: ./services/invoice-validator
+    networks:
+      - invoice_validation
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    mem_limit: 512m
+    pids_limit: 128
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/server/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:${HIREOS_API_PORT:-8001}
+        NEXT_PUBLIC_GOOGLE_MAPS_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_KEY:-}
+    container_name: hireos_frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:${HIREOS_API_PORT:-8001}
+      LEGAL_COMPANY_NAME: ${LEGAL_COMPANY_NAME:-}
+      LEGAL_REPRESENTED_BY: ${LEGAL_REPRESENTED_BY:-}
+      LEGAL_STREET: ${LEGAL_STREET:-}
+      LEGAL_CITY: ${LEGAL_CITY:-}
+      LEGAL_CONTACT_EMAIL: ${LEGAL_CONTACT_EMAIL:-}
+      LEGAL_CONTROLLER_ADDRESS: ${LEGAL_CONTROLLER_ADDRESS:-}
+      LEGAL_PRIVACY_EMAIL: ${LEGAL_PRIVACY_EMAIL:-}
+      LEGAL_REVIEWED: ${LEGAL_REVIEWED:-}
+    ports:
+      - "${HIREOS_FRONTEND_PORT:-3001}:3000"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+
+networks:
+  invoice_validation:
+    internal: true

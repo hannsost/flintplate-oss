@@ -1,0 +1,32 @@
+# Local development overrides – NOT committed to production
+# This file is automatically merged by docker compose up
+
+services:
+  backend:
+    environment:
+      # Override secret key for local development only
+      SECRET_KEY: "dev-secret-key-change-in-production"
+      APP_ENV: "development"
+      # Keep browser origins tied to the published port, overriding stale local
+      # env files without allowing arbitrary origins or changing production.
+      ALLOWED_ORIGINS: '["http://localhost:${HIREOS_FRONTEND_PORT:-3001}","http://127.0.0.1:${HIREOS_FRONTEND_PORT:-3001}"]'
+      FRONTEND_URL: "http://localhost:${HIREOS_FRONTEND_PORT:-3001}"
+    volumes:
+      # Share source for backend checks; restart the service to apply edits.
+      - ./backend:/app
+    command: >-
+      sh -c "alembic upgrade head &&
+      uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+  db:
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  worker:
+    environment:
+      # Local development must not deliver scheduled mail to real recipients.
+      SMTP_HOST: ""
+
+  scheduler:
+    environment:
+      SMTP_HOST: ""

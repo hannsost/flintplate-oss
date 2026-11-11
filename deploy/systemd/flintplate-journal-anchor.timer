@@ -1,0 +1,11 @@
+[Unit]
+Description=Check FlintPlate journal every 30 minutes
+
+[Timer]
+OnCalendar=*:0/30
+Persistent=true
+RandomizedDelaySec=2m
+Unit=flintplate-journal-anchor.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,75 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Pytest / Coverage
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Mypy
+.mypy_cache/
+.dmypy.json
+
+# Ruff
+.ruff_cache/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Secrets – never commit
+*.pem
+*.key
+*.crt
+secrets/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Docker volumes (if mounted locally)
+postgres_data/
+
+# Alembic (auto-generated, keep versions/ but ignore pycache)
+alembic/__pycache__/
+alembic/versions/__pycache__/
+
+# Node (for frontend Sprint 0.2)
+node_modules/
+.next/
+out/
+.npm/
+
+# Uploads (local Phase 0)
+uploads/
+!backend/app/uploads/
+!backend/app/uploads/*.py
+*.pdf
+*.docx
+!backend/tests/fixtures/*.pdf
+
+# Logs
+*.log
+logs/
+.artifacts/
+.env.flintplate
+.local/
+previews/
+.next-production/

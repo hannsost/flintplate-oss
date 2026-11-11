@@ -1,0 +1,74 @@
+stages: [check, test]
+
+frontend:
+  stage: check
+  image: node:24
+  script:
+    - cd frontend
+    - npm ci
+    - npm run lint
+    - npm run build -- --webpack
+    - npm run typecheck
+
+.backend:
+  image: python:3.12
+  before_script:
+    - cd backend
+    - pip install torch==2.14.0+cpu --index-url https://download.pytorch.org/whl/cpu
+    - pip install -c constraints-py312.txt -e ".[dev]"
+
+backend-lint:
+  extends: .backend
+  stage: check
+  script:
+    - black --check --line-length 100 .
+    - ruff check .
+    - mypy app
+
+backend-test:
+  extends: .backend
+  stage: test
+  services:
+    - name: pgvector/pgvector:pg16
+      alias: postgres
+    - name: redis:7-alpine
+      alias: redis
+  variables:
+    POSTGRES_USER: flintplate
+    POSTGRES_PASSWORD: ci-local-test-password
+    POSTGRES_DB: flintplate_test
+    DATABASE_URL: postgresql+asyncpg://flintplate:ci-local-test-password@postgres:5432/flintplate_test
+    REDIS_URL: redis://redis:6379/0
+    SECRET_KEY: ci-test-secret-key-not-for-production
+    APP_ENV: test
+    AI_MOCK_MODE: "true"
+    SMTP_HOST: ""
+    FLINTPLATE_REPLACEMENT_WORKER: "false"
+  script:
+    - apt-get update && apt-get install -y --no-install-recommends postgresql-client redis-tools tesseract-ocr tesseract-ocr-deu tesseract-ocr-eng poppler-utils libpango-1.0-0 libpangocairo-1.0-0 libcairo2 libgdk-pixbuf-2.0-0
+    - for attempt in $(seq 1 30); do pg_isready -h postgres -U flintplate && redis-cli -h redis ping && break; sleep 2; done
+    - pg_isready -h postgres -U flintplate
+    - redis-cli -h redis ping
+    - alembic upgrade head
+    - python -m scripts.test_flintplate
+
+mcp:
+  stage: check
+  image: node:22
+  script:
+    - cd mcp
+    - npm test
+
+secret-scan:
+  stage: check
+  image:
+    name: zricethezav/gitleaks:v8.24.3
+    entrypoint: [""]
+  script:
+    - gitleaks dir . --redact --exit-code 1
+
+ai-client:
+  stage: check
+  image: python:3.12
+  script:
+    - python -m unittest discover -s backend/unit_tests -v

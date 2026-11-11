@@ -1,0 +1,20 @@
+{
+  "name": "@flintplate/mcp",
+  "version": "0.1.0",
+  "description": "Read FlintPlate operations through MCP",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "flintplate-mcp": "src/server.mjs"
+  },
+  "files": [
+    "src"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/server.mjs",
+    "test": "node --test test/*.test.mjs"
+  }
+}

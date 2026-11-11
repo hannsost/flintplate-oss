@@ -1,0 +1,192 @@
+{
+  "$defs": {
+    "MenuPublic": {
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "sku": {
+          "title": "Sku",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "integer"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "category": {
+          "title": "Category",
+          "type": "string"
+        },
+        "price_cents": {
+          "title": "Price Cents",
+          "type": "integer"
+        },
+        "tax_rate_bps": {
+          "title": "Tax Rate Bps",
+          "type": "integer"
+        },
+        "allergens": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Allergens",
+          "type": "array"
+        },
+        "available": {
+          "title": "Available",
+          "type": "boolean"
+        },
+        "station": {
+          "title": "Station",
+          "type": "string"
+        },
+        "takeaway_packaging": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Packaging"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "id",
+        "sku",
+        "version",
+        "name",
+        "description",
+        "category",
+        "price_cents",
+        "tax_rate_bps",
+        "allergens",
+        "available",
+        "station"
+      ],
+      "title": "MenuPublic",
+      "type": "object"
+    },
+    "Packaging": {
+      "properties": {
+        "name": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "price_cents": {
+          "maximum": 10000,
+          "minimum": 0,
+          "title": "Price Cents",
+          "type": "integer"
+        },
+        "deposit_cents": {
+          "default": 0,
+          "maximum": 10000,
+          "minimum": 0,
+          "title": "Deposit Cents",
+          "type": "integer"
+        },
+        "tax_rate_bps": {
+          "maximum": 10000,
+          "minimum": 0,
+          "title": "Tax Rate Bps",
+          "type": "integer"
+        },
+        "deposit_tax_rate_bps": {
+          "maximum": 10000,
+          "minimum": 0,
+          "title": "Deposit Tax Rate Bps",
+          "type": "integer"
+        },
+        "reusable": {
+          "default": false,
+          "title": "Reusable",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "price_cents",
+        "tax_rate_bps",
+        "deposit_tax_rate_bps"
+      ],
+      "title": "Packaging",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "source_system": {
+      "const": "flintplate",
+      "default": "flintplate",
+      "title": "Source System",
+      "type": "string"
+    },
+    "venue_id": {
+      "format": "uuid",
+      "title": "Venue Id",
+      "type": "string"
+    },
+    "menu_id": {
+      "format": "uuid",
+      "title": "Menu Id",
+      "type": "string"
+    },
+    "menu_revision": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Menu Revision",
+      "type": "string"
+    },
+    "currency": {
+      "const": "EUR",
+      "default": "EUR",
+      "title": "Currency",
+      "type": "string"
+    },
+    "timezone": {
+      "title": "Timezone",
+      "type": "string"
+    },
+    "published_at": {
+      "format": "date-time",
+      "title": "Published At",
+      "type": "string"
+    },
+    "items": {
+      "items": {
+        "$ref": "#/$defs/MenuPublic"
+      },
+      "title": "Items",
+      "type": "array"
+    }
+  },
+  "required": [
+    "venue_id",
+    "menu_id",
+    "menu_revision",
+    "timezone",
+    "published_at",
+    "items"
+  ],
+  "title": "MenuSnapshot",
+  "type": "object"
+}

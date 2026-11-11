@@ -1,0 +1,12 @@
+[Unit]
+Description=Verify FlintPlate journal against independent signed checkpoints
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/Work/flintplate
+ExecStart=/usr/bin/python %h/Work/flintplate/scripts/anchor-journal.py --directory %h/Work/coordination/flintplate-implementation-2026-09-12/journal-checkpoints
+NoNewPrivileges=true
+PrivateTmp=true
+UMask=0077
+MemoryMax=512M
+TimeoutStartSec=120
